@@ -20,6 +20,10 @@ public class NavigationStore
 			.Add( new( "Customization" ) )
 			.Add( new( "Dark mode" ) );
 
+	private static NavigationCategory FeaturesCategory =>
+		new NavigationCategory( "Features" )
+			.Add( new( "Icons" ) );
+
 	private static NavigationCategory ComponentsCategory =>
 		new NavigationCategory( "Components" )
 			.Add( new( nameof( LumexAccordion ) ) )
@@ -127,6 +131,7 @@ public class NavigationStore
 		_navigation ??= new Navigation()
 			.Add( GettingStartedCategory )
 			.Add( ThemingCategory )
+			.Add( FeaturesCategory )
 			.Add( ComponentsCategory )
 			.Add( ComponentsApiCategory );
 
