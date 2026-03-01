@@ -1,103 +1,50 @@
 ﻿@page "/docs/features/icons"
+@layout DocsContentLayout
+
 @using System.Reflection
-@inject IJSRuntime JS
 
 <div class="w-full max-w-6xl mx-auto px-4 py-8">
+
     <h1 class="text-4xl font-bold mb-2">Icons</h1>
     <p class="text-foreground/60 mb-8">Browse and search through all available Lucide icons</p>
 
-    <!-- Search Section -->
-    <div class="mb-8">
-        <input type="text" 
-               placeholder="Search icons..." 
-               @bind="searchQuery"
-               @bind:event="oninput"
-               class="w-full px-4 py-3 border border-default-300 rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-               spellcheck="false" />
-        <p class="text-sm text-foreground/60 mt-2">
-            Showing @filteredIcons.Count of @allIcons.Count icons
-        </p>
-    </div>
+    <div class="grid grid-cols gap-3">
+        <LumexAlert>
+            <ChildContent>
+                <span>
+                    A wrapper for <LumexLink External="@true" href="https://lucide.dev/">Lucide Icons</LumexLink> with optional settings for size, color, fill, stroke, and custom classes. Browse available icons in the Lucide library to see what you can use.
+                </span>
+            </ChildContent>
+        </LumexAlert>
 
-    <!-- Icons Grid -->
-    @if (filteredIcons.Count > 0)
-    {
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            @foreach (var icon in filteredIcons)
-            {
-                <div class="p-4 border border-default-200 rounded-lg hover:bg-default-100 hover:border-default-300 transition-all cursor-pointer text-center group"
-                     @onclick="() => OpenIconModal(icon)">
-                    <div class="flex justify-center mb-2 h-8">
-                        @{
-                            <DynamicIcon Type="@icon.type" Size="24" />
-                        }
-                    </div>
-                    <p class="text-xs font-medium text-foreground/70 group-hover:text-foreground transition-colors truncate">
-                        @icon.Name
-                    </p>
- 
-                </div>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="text-center py-12">
-            <p class="text-foreground/60">No icons found matching "@searchQuery"</p>
-        </div>
-    }
-</div>
+        <!-- Icons Grid -->
+        @if (allIcons.Count > 0)
+        {
+            <div class="grid grid-cols-6 sm:grid-cols-10 gap-3">
 
-<!-- Icon Detail Modal -->
-<LumexModal IsOpen="@isModalOpen" OnOpenChange="@((bool open) => isModalOpen = open)" Size="@Size.Medium">
-    <ModalContent>
-        <ModalHeader>
-            <h2 class="text-lg font-semibold">@selectedIcon?.Name</h2>
-        </ModalHeader>
-
-        <ModalBody class="flex flex-col items-center gap-6">
-            <!-- Large Icon Display -->
-            <div class="p-8 rounded-lg bg-default-100">
-                @if (selectedIcon?.type != null)
+                @foreach (var icon in allIcons)
                 {
-                    <div class="flex justify-center">
-                        <DynamicComponent Type="@selectedIcon.type" Parameters="@GetLargeIconParameters()" />
-                    </div>
+                    <LumexButton IconOnly="@true" Variant="@Variant.Flat" Color="@ThemeColor.Default" OnClick="@(() => OpenIconModal(icon))">
+                        <DynamicIcon Type="@icon.type" Size="24" />
+                    </LumexButton>
                 }
             </div>
-
-            <!-- Code Block -->
-            <div class="w-full">
-                <p class="text-sm font-medium mb-2">Usage</p>
-                <div class="bg-default-100 rounded-lg p-4 flex items-center justify-between group">
-                    <code class="text-sm font-mono text-foreground/80">
-                        &lt;@selectedIcon?.type?.Name @(@"Width=""24"" Height=""24""")@(" />"
-                    </code>
-                    <button class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-default-200 rounded"
-                            @onclick="() => CopyIconCode()">
-                        <CopyIcon Width="16" Height="16" />
-                    </button>
-                </div>
+        }
+        else
+        {
+            <div class="text-center py-12">
+                <p class="text-foreground/60">No icons found</p>
             </div>
-        </ModalBody>
+        }
+    </div>
+</div>
 
-        <ModalFooter>
-            <LumexButton Color="@ThemeColor.Default" Variant="Variant.Light" @onclick="@(() => isModalOpen = false)">
-                Close
-            </LumexButton>
-            <LumexButton Color="@ThemeColor.Primary" @onclick="() => CopyIconCode()">
-                Copy Code
-            </LumexButton>
-        </ModalFooter>
-    </ModalContent>
-</LumexModal>
+
 
 @code {
-    record Icon(string Name, Type type);
+    protected record Icon(string Name, Type type);
 
-    private string searchQuery = "";
     private List<Icon> allIcons = new();
-    private List<Icon> filteredIcons = new();
     private bool isModalOpen = false;
     private Icon? selectedIcon = null;
 
@@ -106,47 +53,16 @@
         // Get all icon component names from the assembly
         var assembly = typeof(IconBase).Assembly;
         var iconTypes = assembly.GetTypes()
-            .Where(t => !t.IsAbstract && 
+            .Where(t => !t.IsAbstract &&
                         t.BaseType?.Name == "IconBase")
             .OrderBy(n => n.Name)
             .ToList();
 
-        allIcons = iconTypes.Select(x => new Icon(FormatIconName(x.Name), x)).ToList();
-        filteredIcons = allIcons;
+        // Use only first 10 as test
+        allIcons = iconTypes.Select(x => new Icon(FormatIconName(x.Name), x)).Take(10).ToList();
     }
 
-    private Dictionary<string, object> GetIconParameters()
-    {
-        return new Dictionary<string, object>
-        {
-            { "Width", 24 },
-            { "Height", 24 }
-        };
-    }
 
-    private Dictionary<string, object> GetLargeIconParameters()
-    {
-        return new Dictionary<string, object>
-        {
-            { "Width", 48 },
-            { "Height", 48 }
-        };
-    }
-
-    private void FilterIcons()
-    {
-        if (string.IsNullOrWhiteSpace(searchQuery))
-        {
-            filteredIcons = allIcons;
-        }
-        else
-        {
-            var query = searchQuery.ToLower();
-            filteredIcons = allIcons
-                .Where(icon => icon.Name.ToLower().Contains(query))
-                .ToList();
-        }
-    }
 
     private string FormatIconName(string iconName)
     {
@@ -155,24 +71,11 @@
         return System.Text.RegularExpressions.Regex.Replace(name, "(?<!^)(?=[A-Z])", " ");
     }
 
-    private void OpenIconModal(Icon icon)
+    protected async Task OpenIconModal(Icon icon)
     {
         selectedIcon = icon;
         isModalOpen = true;
     }
 
-    private async Task CopyIconCode()
-    {
-        if (selectedIcon?.type != null)
-        {
-            var code = $"<{selectedIcon.type.Name} Width=\"24\" Height=\"24\" />";
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", code);
-        }
-    }
-
-    protected override void OnParametersSet()
-    {
-        FilterIcons();
-    }
 }
 
